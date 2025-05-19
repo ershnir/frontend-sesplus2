@@ -1,31 +1,27 @@
-import { books } from '../../../../data';
-import fs from 'fs';
-import path from 'path';
+const BACKEND_URL = 'http://localhost:3333';
 
-export default function handler(req, res) {
-    if (req.method === 'GET') {
-        res.status(200).json(books);
-    } else if (req.method === 'POST') {
-        const { title, author, description } = req.body;
-        const newBook = {
-            id: Date.now(),
-            title,
-            author,
-            description,
-        };
-        books.push(newBook);
-        res.status(201).json(newBook);
-    } else {
-        res.setHeader('Allow', ['GET', 'POST']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+export default async function handler(req, res) {
+    const { method } = req;
+
+    switch ( method ) {
+        case 'GET': {
+            const fetchRes = await fetch(`${BACKEND_URL}/api/books`);
+            const data = await fetchRes.json();
+            return res.status(fetchRes.status).json(data);
+        }
+
+        case 'POST': {
+            const { title, author } = req.body;
+            console.log(title, author);
+            const fetchRes = await fetch(`${BACKEND_URL}/api/books`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title, author }),
+            });
+            const data = await fetchRes.json();
+            return res.status(fetchRes.status).json(data);
+        }
     }
-
-    const filePath = path.join(process.cwd(), 'data.js');
-    const updateData = `let books = ${JSON.stringify( books, null, 2 )};
-    \module.exports = { books };`;
-    fs.writeFileSync(filePath, updateData, 'utf8');
-
-    res.status(201).json(newBook);
-
-    
 }

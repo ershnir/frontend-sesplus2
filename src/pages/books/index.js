@@ -1,22 +1,34 @@
 import { useEffect, useState } from "react";
 import Link from 'next/link';
+import { getBooks, deleteBook as apiDeleteBook } from "@/lib/api/books";
 
 export default function BookList() {
     const [books, setBooks] = useState([]);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        fetch('http://localhost:3000/api/books')
-            .then(res => res.json())
-            .then(data => setBooks(data));
-    }, []);
-
-    const deleteBook = async (id) => {
-        await fetch(`http://localhost:3000/api/books/${id}`, {
-            method: 'DELETE',
-        });
-        setBooks(books.filter(b => b.id !== id));
-    };
-
+    useEffect (() => {
+        async function fetchData() {
+            try {
+                const data = await getBooks();
+                setBooks(data);
+            } catch (err) {
+                setError(err.message);
+            }
+        }
+        fetchData();
+        }, []);
+    
+        const deleteBook = async (id) => {
+            try {
+                await apiDeleteBook(id);
+                setBooks(prevBooks=> prevBooks.filter((b) => b.id !== id));
+            } catch (err) {
+                setError(err.message);
+            }
+        };
+        if (error){
+            return <div>{error}</div>
+        };
     return (
         <div className="min-h-screen bg-black px-8 py-10">
             <h1 className="text-white text-3xl font-bold mb-4">Daftar Buku</h1>

@@ -1,54 +1,39 @@
-import { books } from '../../../../data';
-import fs from 'fs';
-import path from 'path';
+const BACKEND_URL = 'http://localhost:3333';
 
-export default function handler(req, res) {
-  const { id } = req.query;
-  const bookId = parseInt(id, 10);
-  const bookIndex = books.findIndex((book) => book.id === bookId);
+export default async function handler(req, res) {
+  const { method , query: { id }} = req;
 
-  if (req.method === 'GET') {
-    if (bookIndex === -1) {
-      return res.status(404).json({ message: 'Book not found' });
+  switch (method) {
+    case 'GET': {
+      const fetchRes = await fetch(`${BACKEND_URL}/api/books/${id}`);
+      const data = await fetchRes.json();
+      return res.status(fetchRes.status).json(data);
     }
-    return res.status(200).json(books[bookIndex]);
-
-  } else if (req.method === 'PUT') {
-    if (bookIndex === -1) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-
-    const { title, author, description } = req.body;
-
-    books[bookIndex] = {
-      ...books[bookIndex],
-      title,
-      author,
-      description
-    };
-
-    // Update data.js file
-    const filePath = path.join(process.cwd(), 'data.js');
-    const updatedData = `let books = ${JSON.stringify(books, null, 2)};\nmodule.exports = { books };`;
-    fs.writeFileSync(filePath, updatedData, 'utf8');
-
-    return res.status(200).json(books[bookIndex]);
-
-  } else if (req.method === 'DELETE') {
-    if (bookIndex === -1) {
-      return res.status(404).json({ message: 'Book not found' });
+    case 'PUT': {
+      const { title, author } = req.body;
+      console.log(title, author);
+      const fetchRes = await fetch(`${BACKEND_URL}/api/books/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, author }),
+      });
+      const data = await fetchRes.json();
+      return res.status(fetchRes.status).json(data);
     }
 
-    books.splice(bookIndex, 1);
+    case 'DELETE': {
+      const fetchRes = await fetch(`${BACKEND_URL}/api/books/${id}`, {
+        method: 'DELETE',
+      });
+      if (fetchRes.status === 204) {
+        return res.status(204).end();
+      } 
+      const data = await fetchRes.json();
+      return res.status(fetchRes.status).json(data);
+    }
+    
+}
 
-    const filePath = path.join(process.cwd(), 'data.js');
-    const updatedData = `let books = ${JSON.stringify(books, null, 2)};\nmodule.exports = { books };`;
-    fs.writeFileSync(filePath, updatedData, 'utf8');
-
-    return res.status(200).json({ message: 'Book deleted successfully' });
-
-  } else {
-    res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
 }

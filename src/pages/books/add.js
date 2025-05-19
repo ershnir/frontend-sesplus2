@@ -1,18 +1,26 @@
 import { useRouter } from "next/router";
+import React, { useState } from "react";
 import BookForm from "../../components/BookForm.js";
+import { createBook } from "../../../lib/api/books.js";
 
 export default function AddBook() {
+    const [title, setTitle] = useState("");
+    const [author, setAuthor] = useState("");
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const AddBook = async (book) => {
-        await fetch ('/api/books', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(book)
-        });
-        router.push('/books');
-};
-return <BookForm onSubmit={AddBook} />;
+    const handerSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        try {
+            await createBook(title, author);
+            router.push("/books");
+        } catch (err) {
+            setError(err.message || "");
+        } finally {
+            setLoading(false);
+        }
+    };
 }

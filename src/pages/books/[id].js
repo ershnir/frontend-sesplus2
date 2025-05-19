@@ -1,34 +1,47 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import BookForm from '../../components/BookForm';
+import { getBook } from '../../../lib/api/books';
 
 export default function EditBook() {
   const router = useRouter();
   const { id } = router.query;
-  const [book, setBook] = useState(null);
-
-  const _getBookById = async () => {
-    if (id) {
-      const res = await fetch(`/api/books/${id}`);
-      const data = await res.json();
-      setBook(data);
-    }
-  };
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    _getBookById();
-    console.log(book, "ini book");
+    if (id)return;
+    async function fetchBook() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getBook(id);
+        setTitle(data.title || "");
+        setAuthor(data.author || "");
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchBook();
+  
   }, [id]);
 
-  const updateBook = async (data) => {
-    await fetch(`/api/books/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    router.push('/books');
-  };
-
-  if (!book) return <p>Loading...</p>;
-  return <BookForm initialData={book} onSubmit={updateBook} />;
+  const handerSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await updateBook(id, title, author);
+      router.push('/books');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 }
